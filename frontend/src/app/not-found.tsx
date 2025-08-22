@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useScroll } from 'motion/react';
+import { useScroll } from 'framer-motion';
 import { FlickeringGrid } from '@/components/home/ui/flickering-grid';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
@@ -12,15 +12,20 @@ export default function NotFound() {
   const [mounted, setMounted] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
-  const { scrollY } = useScroll();
+  const [isBrowser, setIsBrowser] = useState(false);
+  const scrollData = useScroll();
+  const scrollY = isBrowser ? scrollData.scrollY : { onChange: () => {} };
 
   useEffect(() => {
     setMounted(true);
+    setIsBrowser(typeof window !== 'undefined');
   }, []);
 
   // Detect when scrolling is active to reduce animation complexity
   useEffect(() => {
-    const unsubscribe = scrollY.on('change', () => {
+    if (!isBrowser) return;
+    
+    const handleScroll = () => {
       setIsScrolling(true);
 
       // Clear any existing timeout
@@ -32,15 +37,16 @@ export default function NotFound() {
       scrollTimeout.current = setTimeout(() => {
         setIsScrolling(false);
       }, 300); // Wait 300ms after scroll stops
-    });
+    };
+
+    scrollY.onChange(handleScroll);
 
     return () => {
-      unsubscribe();
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
     };
-  }, [scrollY]);
+  }, [scrollY, isBrowser]);
 
   return (
     <section className="w-full relative overflow-hidden min-h-screen flex items-center justify-center">
